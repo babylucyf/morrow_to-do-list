@@ -6,28 +6,330 @@
   <title>Morrow — To-Do List</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
+
 <body>
   <main class="app-shell">
+
     <aside class="sidebar">
-      <div class="brand"><span class="brand-mark">✓</span> Morrow</div>
+      <div class="brand">
+        <span class="brand-mark">✓</span>
+        Morrow
+      </div>
+
       <nav id="smart-lists" aria-label="Task collections">
-        <button class="nav-active" data-list="all">◫ <span>All tasks</span><small id="all-count">0</small></button>
-        <button data-list="today">◷ <span>Today</span></button>
-        <button data-list="upcoming">→ <span>Upcoming</span></button>
-        <button data-list="overdue">! <span>Overdue</span></button>
-        <button data-list="completed">✓ <span>Completed</span></button>
+
+        <button class="nav-active" data-list="all">
+          <span class="nav-icon">☷</span>
+          <span>All tasks</span>
+          <small id="all-count">0</small>
+        </button>
+
+        <button data-list="today">
+          <span class="nav-icon">●</span>
+          <span>Today</span>
+        </button>
+
+        <button data-list="calendar">
+          <span class="nav-icon">□</span>
+          <span>Calendar</span>
+        </button>
+
+        <button data-list="upcoming">
+          <span class="nav-icon">→</span>
+          <span>Upcoming</span>
+        </button>
+
+        <button data-list="overdue">
+          <span class="nav-icon">!</span>
+          <span>Overdue</span>
+        </button>
+
+        <button data-list="completed">
+          <span class="nav-icon">✓</span>
+          <span>Completed</span>
+        </button>
+
       </nav>
-      <div class="sidebar-foot">Saved privately in this browser</div>
+
+      <div class="sidebar-foot">
+        Saved privately in this browser
+      </div>
     </aside>
+
+
     <section class="workspace">
-      <header class="topbar"><div><p>YOUR WORKSPACE</p><h1 id="page-title">All tasks</h1></div><label class="search">⌕ <input id="search" placeholder="Search tasks" aria-label="Search tasks" /></label></header>
-      <section class="summary"><div><span>Focus for today</span><strong id="focus-text">0 tasks remain</strong></div><div><div class="progress"><i id="progress-bar"></i></div><small id="progress-text">0 of 0 completed</small></div></section>
-      <section class="quick-add"><div class="quick-heading"><strong>Quick add</strong><button id="details-toggle">Add details</button></div><div class="quick-line"><input id="task-input" placeholder="What needs to be done?" aria-label="New task title" autofocus /><button id="parse-button" class="secondary">✦ Parse</button><button id="add-button" class="primary">Add task</button></div><div id="quick-details" hidden><select id="priority"><option value="">Priority</option><option value="p1">P1 · Urgent</option><option value="p2">P2 · High</option><option value="p3">P3 · Medium</option><option value="p4">P4 · Low</option></select><input id="due-date" type="date" aria-label="Due date" /><input id="tags" placeholder="Tags, separated by commas" aria-label="Tags" /></div></section>
-      <section class="controls"><div class="view-tabs"><button class="selected" data-view="list">☷ List</button><button data-view="board">▦ Board</button></div><div class="filters"><select id="status-filter"><option value="">Any status</option><option value="todo">To Do</option><option value="in_progress">In Progress</option><option value="done">Done</option></select><select id="priority-filter"><option value="">Any priority</option><option value="p1">P1</option><option value="p2">P2</option><option value="p3">P3</option><option value="p4">P4</option></select></div></section>
-      <section id="task-area" class="task-list" aria-live="polite"></section>
+
+      <header class="topbar">
+        <div>
+          <p>YOUR WORKSPACE</p>
+          <h1 id="page-title">All tasks</h1>
+        </div>
+
+        <label class="search">
+          ⌕
+          <input
+            id="search"
+            placeholder="Search tasks"
+            aria-label="Search tasks"
+          />
+        </label>
+      </header>
+
+
+      <section class="summary">
+
+        <div>
+          <span>Focus for today</span>
+          <strong id="focus-text">0 tasks remain</strong>
+        </div>
+
+        <div class="summary-progress">
+          <div class="progress">
+            <i id="progress-bar"></i>
+          </div>
+
+          <small id="progress-text">
+            0 of 0 completed
+          </small>
+        </div>
+
+      </section>
+
+
+      <!-- QUICK ADD -->
+
+      <section class="quick-add">
+
+        <div class="quick-heading">
+          <strong>Quick add</strong>
+        </div>
+
+        <div class="quick-line">
+
+          <input
+            id="task-input"
+            placeholder="What needs to be done?"
+            aria-label="New task title"
+            autofocus
+          />
+
+          <button id="add-button" class="primary">
+            Add task
+          </button>
+
+        </div>
+
+        <div class="quick-details">
+
+          <select id="priority">
+            <option value="">Priority</option>
+            <option value="p1">P1 · Urgent</option>
+            <option value="p2">P2 · High</option>
+            <option value="p3">P3 · Medium</option>
+            <option value="p4">P4 · Low</option>
+          </select>
+
+          <input
+            id="due-date"
+            type="date"
+            aria-label="Due date"
+          />
+
+          <input
+            id="tags"
+            placeholder="Tags, separated by commas"
+            aria-label="Tags"
+          />
+
+        </div>
+
+      </section>
+
+
+      <!-- VIEW CONTROLS -->
+
+      <section class="controls">
+
+        <div class="view-tabs">
+
+          <button
+            class="selected"
+            data-view="list"
+          >
+            ☷ List
+          </button>
+
+          <button data-view="board">
+            ▦ Board
+          </button>
+
+          <button data-view="calendar">
+            □ Calendar
+          </button>
+
+        </div>
+
+
+        <div class="filters">
+
+          <select id="status-filter">
+            <option value="">Any status</option>
+            <option value="todo">To Do</option>
+            <option value="in_progress">In Progress</option>
+            <option value="done">Done</option>
+          </select>
+
+          <select id="priority-filter">
+            <option value="">Any priority</option>
+            <option value="p1">P1</option>
+            <option value="p2">P2</option>
+            <option value="p3">P3</option>
+            <option value="p4">P4</option>
+          </select>
+
+        </div>
+
+      </section>
+
+
+      <!-- TASKS / BOARD / CALENDAR WILL APPEAR HERE -->
+
+      <section
+        id="task-area"
+        class="task-list"
+        aria-live="polite"
+      ></section>
+
     </section>
+
   </main>
-  <dialog id="task-dialog"><form method="dialog" id="edit-form"><header><strong>Task details</strong><button value="cancel" aria-label="Close">×</button></header><label>Title<input id="edit-title" required /></label><label>Description<textarea id="edit-description" rows="4" placeholder="Add a note…"></textarea></label><div class="form-grid"><label>Status<select id="edit-status"><option value="todo">To Do</option><option value="in_progress">In Progress</option><option value="done">Done</option></select></label><label>Priority<select id="edit-priority"><option value="">No priority</option><option value="p1">P1 · Urgent</option><option value="p2">P2 · High</option><option value="p3">P3 · Medium</option><option value="p4">P4 · Low</option></select></label><label>Due date<input id="edit-date" type="date" /></label><label>Tags<input id="edit-tags" placeholder="work, personal" /></label></div><footer><button id="delete-button" type="button" class="danger">Delete</button><span></span><button value="cancel" class="secondary">Cancel</button><button id="save-button" value="default" class="primary">Save changes</button></footer></form></dialog>
+
+
+  <!-- EDIT TASK DIALOG -->
+
+  <dialog id="task-dialog">
+
+    <form
+      method="dialog"
+      id="edit-form"
+    >
+
+      <header>
+        <strong>Task details</strong>
+
+        <button
+          value="cancel"
+          aria-label="Close"
+        >
+          ×
+        </button>
+      </header>
+
+
+      <label>
+        Title
+        <input
+          id="edit-title"
+          required
+        />
+      </label>
+
+
+      <label>
+        Description
+
+        <textarea
+          id="edit-description"
+          rows="4"
+          placeholder="Add a note…"
+        ></textarea>
+
+      </label>
+
+
+      <div class="form-grid">
+
+        <label>
+          Status
+
+          <select id="edit-status">
+            <option value="todo">To Do</option>
+            <option value="in_progress">In Progress</option>
+            <option value="done">Done</option>
+          </select>
+        </label>
+
+
+        <label>
+          Priority
+
+          <select id="edit-priority">
+            <option value="">No priority</option>
+            <option value="p1">P1 · Urgent</option>
+            <option value="p2">P2 · High</option>
+            <option value="p3">P3 · Medium</option>
+            <option value="p4">P4 · Low</option>
+          </select>
+        </label>
+
+
+        <label>
+          Due date
+
+          <input
+            id="edit-date"
+            type="date"
+          />
+        </label>
+
+
+        <label>
+          Tags
+
+          <input
+            id="edit-tags"
+            placeholder="work, personal"
+          />
+        </label>
+
+      </div>
+
+
+      <footer>
+
+        <button
+          id="delete-button"
+          type="button"
+          class="danger"
+        >
+          Delete
+        </button>
+
+        <span></span>
+
+        <button
+          value="cancel"
+          class="secondary"
+        >
+          Cancel
+        </button>
+
+        <button
+          id="save-button"
+          value="default"
+          class="primary"
+        >
+          Save changes
+        </button>
+
+      </footer>
+
+    </form>
+
+  </dialog>
+
+
   <script src="app.js"></script>
+
 </body>
 </html>
