@@ -1108,3 +1108,31 @@ form footer span {
   }
 
 }
+.focus-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+#focus-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+#focus-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#focus-due {
+  font-size: 0.75rem;
+  opacity: 0.65;
+}
+
+@media (max-width: 600px) {
+  #focus-text {
+    max-width: 220px;
+  }
+}
