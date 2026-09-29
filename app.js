@@ -10,23 +10,21 @@ const $ = (id) => document.getElementById(id);
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-const save = () => {
+const save = () =>
   localStorage.setItem(storeKey, JSON.stringify(tasks));
-};
 
 const esc = (value) =>
-  String(value ?? "").replace(/[&<>'"]/g, (char) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    "'": "&#39;",
-    '"': "&quot;"
-  })[char]);
-
-
-/* -----------------------------
-   DATE HELPERS
------------------------------ */
+  String(value).replace(
+    /[&<>'"]/g,
+    (char) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "'": "&#39;",
+        '"': "&quot;"
+      })[char]
+  );
 
 function formatDate(dateString) {
   if (!dateString) return "";
@@ -48,316 +46,211 @@ function dateToISO(date) {
   return `${year}-${month}-${day}`;
 }
 
-function calendarMonthLabel() {
-  return calendarDate.toLocaleDateString("en-US", {
+function calendarMonthLabel(date) {
+  return date.toLocaleDateString("en-US", {
     month: "long",
     year: "numeric"
   });
 }
-
-
-/* -----------------------------
-   FILTERING
------------------------------ */
 
 function filtered() {
   const search = $("search").value.toLowerCase();
   const status = $("status-filter").value;
   const priority = $("priority-filter").value;
 
-  return tasks.filter((t) => {
-
+  return tasks.filter((task) => {
     if (
       currentList === "today" &&
-      t.due !== today()
+      task.due !== today()
     ) {
       return false;
     }
 
     if (
       currentList === "upcoming" &&
-      (
-        !t.due ||
-        t.due <= today() ||
-        t.status === "done"
-      )
+      (!task.due ||
+        task.due <= today() ||
+        task.status === "done")
     ) {
       return false;
     }
 
     if (
       currentList === "overdue" &&
-      (
-        !t.due ||
-        t.due >= today() ||
-        t.status === "done"
-      )
+      (!task.due ||
+        task.due >= today() ||
+        task.status === "done")
     ) {
       return false;
     }
 
     if (
       currentList === "completed" &&
-      t.status !== "done"
+      task.status !== "done"
     ) {
       return false;
     }
 
     if (
       status &&
-      t.status !== status
+      task.status !== status
     ) {
       return false;
     }
 
     if (
       priority &&
-      t.priority !== priority
+      task.priority !== priority
     ) {
       return false;
     }
 
-    const searchableText = [
-      t.title,
-      t.description,
-      ...(t.tags || [])
-    ]
-      .join(" ")
-      .toLowerCase();
-
-    if (
-      search &&
-      !searchableText.includes(search)
-    ) {
-      return false;
-    }
-
-    return true;
+    return (
+      !search ||
+      [
+        task.title,
+        task.description,
+        ...task.tags
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(search)
+    );
   });
 }
 
-
-/* -----------------------------
-   TASK HTML
------------------------------ */
-
-function taskHTML(t) {
-
+function taskHTML(task) {
   return `
     <article
-      class="task ${t.status === "done" ? "done" : ""}"
+      class="task ${task.status === "done" ? "done" : ""}"
       draggable="true"
-      data-id="${t.id}"
+      data-id="${task.id}"
     >
-
       <button
         class="check"
-        data-complete="${t.id}"
-        aria-label="Complete ${esc(t.title)}"
+        data-complete="${task.id}"
+        aria-label="Complete ${esc(task.title)}"
       >
-        ${t.status === "done" ? "✓" : ""}
+        ${task.status === "done" ? "✓" : ""}
       </button>
 
       <button
         class="task-info"
-        data-edit="${t.id}"
+        data-edit="${task.id}"
       >
-
         <span class="task-title">
-          ${esc(t.title)}
+          ${esc(task.title)}
         </span>
 
         <span class="meta">
-
           ${
-            t.priority
-              ? `<b class="${esc(t.priority)}">
-                   ${esc(t.priority.toUpperCase())}
-                 </b>`
+            task.priority
+              ? `<b class="${task.priority}">
+                  ${task.priority.toUpperCase()}
+                </b>`
               : ""
           }
 
           ${
-            t.due
-              ? `<span>◷ ${formatDate(t.due)}</span>`
+            task.due
+              ? `<span>◷ ${formatDate(task.due)}</span>`
               : ""
           }
 
-          ${(t.tags || [])
+          ${task.tags
             .map(
               (tag) =>
-                `<span class="tag">#${esc(tag)}</span>`
+                `<span class="tag">
+                  #${esc(tag)}
+                </span>`
             )
             .join("")}
-
         </span>
-
       </button>
-
     </article>
   `;
 }
 
-
-/* -----------------------------
-   CALENDAR
------------------------------ */
-
 function renderCalendar() {
+  const area = $("task-area");
 
   const year = calendarDate.getFullYear();
   const month = calendarDate.getMonth();
 
   const firstDay = new Date(year, month, 1);
-
   const startDay = firstDay.getDay();
 
-  const daysInMonth =
-    new Date(year, month + 1, 0).getDate();
+  const daysInMonth = new Date(
+    year,
+    month + 1,
+    0
+  ).getDate();
 
-  const previousMonthDays =
-    new Date(year, month, 0).getDate();
+  const previousMonthDays = new Date(
+    year,
+    month,
+    0
+  ).getDate();
 
-  let html = `
-    <section class="calendar">
+  const cells = [];
 
-      <header class="calendar-header">
+  for (let i = 0; i < 42; i++) {
+    const dayNumber =
+      i - startDay + 1;
 
-        <div>
-          <p>YOUR SCHEDULE</p>
-          <h2>${calendarMonthLabel()}</h2>
-        </div>
-
-        <div class="calendar-actions">
-
-          <button
-            class="secondary"
-            id="calendar-today"
-          >
-            Today
-          </button>
-
-          <button
-            class="calendar-arrow"
-            id="calendar-prev"
-            aria-label="Previous month"
-          >
-            ‹
-          </button>
-
-          <button
-            class="calendar-arrow"
-            id="calendar-next"
-            aria-label="Next month"
-          >
-            ›
-          </button>
-
-        </div>
-
-      </header>
-
-      <div class="calendar-weekdays">
-
-        <span>Sun</span>
-        <span>Mon</span>
-        <span>Tue</span>
-        <span>Wed</span>
-        <span>Thu</span>
-        <span>Fri</span>
-        <span>Sat</span>
-
-      </div>
-
-      <div class="calendar-grid">
-  `;
-
-
-  const calendarTasks = tasks.filter(
-    (task) => task.due
-  );
-
-
-  for (let cell = 0; cell < 42; cell++) {
-
-    let dayNumber;
     let cellDate;
-    let otherMonth = false;
+    let isCurrentMonth = true;
 
-    if (cell < startDay) {
-
-      dayNumber =
-        previousMonthDays -
-        startDay +
-        cell +
-        1;
-
-      cellDate =
-        new Date(year, month - 1, dayNumber);
-
-      otherMonth = true;
-
-    } else if (
-      cell >= startDay + daysInMonth
-    ) {
-
-      dayNumber =
-        cell -
-        (startDay + daysInMonth) +
-        1;
-
-      cellDate =
-        new Date(year, month + 1, dayNumber);
-
-      otherMonth = true;
-
-    } else {
-
-      dayNumber =
-        cell -
-        startDay +
-        1;
-
-      cellDate =
-        new Date(year, month, dayNumber);
-    }
-
-
-    const isoDate = dateToISO(cellDate);
-
-    const isToday =
-      isoDate === today();
-
-    const dayTasks =
-      calendarTasks.filter(
-        (task) => task.due === isoDate
+    if (dayNumber < 1) {
+      cellDate = new Date(
+        year,
+        month - 1,
+        previousMonthDays + dayNumber
       );
 
+      isCurrentMonth = false;
+    } else if (dayNumber > daysInMonth) {
+      cellDate = new Date(
+        year,
+        month + 1,
+        dayNumber - daysInMonth
+      );
 
-    html += `
+      isCurrentMonth = false;
+    } else {
+      cellDate = new Date(
+        year,
+        month,
+        dayNumber
+      );
+    }
+
+    const isoDate = dateToISO(cellDate);
+    const isToday = isoDate === today();
+
+    const dayTasks = tasks.filter(
+      (task) =>
+        task.due === isoDate
+    );
+
+    cells.push(`
       <div
         class="calendar-day
-          ${otherMonth ? "other-month" : ""}
-          ${isToday ? "calendar-today" : ""}"
-        data-date="${isoDate}"
+          ${isCurrentMonth ? "" : "muted"}
+          ${isToday ? "today" : ""}"
       >
-
-        <div class="calendar-day-number">
-          ${dayNumber}
-        </div>
+        <span class="calendar-number">
+          ${cellDate.getDate()}
+        </span>
 
         <div class="calendar-tasks">
-
           ${dayTasks
             .slice(0, 3)
             .map(
               (task) => `
                 <button
-                  class="calendar-task ${
-                    task.status === "done"
-                      ? "calendar-task-done"
-                      : ""
-                  }"
+                  class="calendar-task
+                    ${task.status === "done" ? "done" : ""}"
                   data-edit="${task.id}"
                   title="${esc(task.title)}"
                 >
@@ -369,37 +262,67 @@ function renderCalendar() {
 
           ${
             dayTasks.length > 3
-              ? `
-                <button
-                  class="calendar-more"
-                  data-date="${isoDate}"
-                >
+              ? `<span class="calendar-more">
                   +${dayTasks.length - 3} more
-                </button>
-              `
+                </span>`
               : ""
           }
-
         </div>
-
       </div>
-    `;
+    `);
   }
 
+  area.className = "calendar";
 
-  html += `
+  area.innerHTML = `
+    <div class="calendar-header">
+      <button
+        type="button"
+        id="calendar-prev"
+        class="secondary"
+      >
+        ‹
+      </button>
+
+      <strong>
+        ${calendarMonthLabel(calendarDate)}
+      </strong>
+
+      <div class="calendar-actions">
+        <button
+          type="button"
+          id="calendar-today"
+          class="secondary"
+        >
+          Today
+        </button>
+
+        <button
+          type="button"
+          id="calendar-next"
+          class="secondary"
+        >
+          ›
+        </button>
       </div>
+    </div>
 
-    </section>
+    <div class="calendar-weekdays">
+      <span>Sun</span>
+      <span>Mon</span>
+      <span>Tue</span>
+      <span>Wed</span>
+      <span>Thu</span>
+      <span>Fri</span>
+      <span>Sat</span>
+    </div>
+
+    <div class="calendar-grid">
+      ${cells.join("")}
+    </div>
   `;
 
-
-  $("task-area").className = "calendar-wrapper";
-  $("task-area").innerHTML = html;
-
-
   $("calendar-prev").onclick = () => {
-
     calendarDate = new Date(
       year,
       month - 1,
@@ -409,9 +332,7 @@ function renderCalendar() {
     renderCalendar();
   };
 
-
   $("calendar-next").onclick = () => {
-
     calendarDate = new Date(
       year,
       month + 1,
@@ -421,119 +342,143 @@ function renderCalendar() {
     renderCalendar();
   };
 
-
   $("calendar-today").onclick = () => {
-
     calendarDate = new Date();
-
     renderCalendar();
   };
 }
 
-
-/* -----------------------------
-   MAIN RENDER
------------------------------ */
-
 function render() {
-
+  const visible = filtered();
   const area = $("task-area");
 
-  const visible = filtered();
+  $("all-count").textContent =
+    tasks.length;
+
+  /*
+    TOP SUMMARY
+    -------------------------
+    1. If there are tasks today:
+       Focus for today
+       3 tasks remain
+
+    2. If today is empty but there
+       are future tasks:
+       Up next
+       Finish portfolio
+       Due Sep 30
+
+    3. If there are no future tasks:
+       You're all caught up
+       No upcoming tasks
+  */
+
+  const todayTasks = tasks.filter(
+    (task) =>
+      task.due === today() &&
+      task.status !== "done"
+  );
+
+  const upcomingTasks = tasks
+    .filter(
+      (task) =>
+        task.due &&
+        task.due > today() &&
+        task.status !== "done"
+    )
+    .sort(
+      (a, b) =>
+        a.due.localeCompare(b.due)
+    );
+
+  const focusLabel =
+    $("focus-label");
+
+  const focusText =
+    $("focus-text");
+
+  const focusDue =
+    $("focus-due");
+
+  if (todayTasks.length > 0) {
+    focusLabel.textContent =
+      "Focus for today";
+
+    focusText.textContent =
+      `${todayTasks.length} task${
+        todayTasks.length === 1
+          ? ""
+          : "s"
+      } remain`;
+
+    focusDue.textContent = "";
+
+  } else if (
+    upcomingTasks.length > 0
+  ) {
+    const nextTask =
+      upcomingTasks[0];
+
+    focusLabel.textContent =
+      "Up next";
+
+    focusText.textContent =
+      nextTask.title;
+
+    const nextDate =
+      new Date(
+        `${nextTask.due}T00:00:00`
+      );
+
+    focusDue.textContent =
+      `Due ${nextDate.toLocaleDateString(
+        "en-US",
+        {
+          month: "short",
+          day: "numeric"
+        }
+      )}`;
+
+  } else {
+    focusLabel.textContent =
+      "You're all caught up";
+
+    focusText.textContent =
+      "No upcoming tasks";
+
+    focusDue.textContent = "";
+  }
 
   const completed =
     tasks.filter(
-      (task) => task.status === "done"
+      (task) =>
+        task.status === "done"
     ).length;
-
-  const todayTasks = tasks.filter(
-  (task) =>
-    task.due === today() &&
-    task.status !== "done"
-);
-
-const upcomingTasks = tasks
-  .filter(
-    (task) =>
-      task.due &&
-      task.due > today() &&
-      task.status !== "done"
-  )
-  .sort(
-    (a, b) =>
-      a.due.localeCompare(b.due)
-  );
-
-$("all-count").textContent = tasks.length;
-
-const focusLabel = document.querySelector(
-  ".summary > div:first-child span"
-);
-
-const focusText = $("focus-text");
-
-if (todayTasks.length > 0) {
-
-  focusLabel.textContent = "Focus for today";
-
-  focusText.textContent =
-    `${todayTasks.length} task${
-      todayTasks.length === 1 ? "" : "s"
-    } remain`;
-
-} else if (upcomingTasks.length > 0) {
-
-  const nextTask = upcomingTasks[0];
-
-  focusLabel.textContent = "Up next";
-
-  focusText.textContent =
-    `${nextTask.title} · Due ${formatDate(nextTask.due)}`;
-
-} else {
-
-  focusLabel.textContent = "You're all caught up";
-
-  focusText.textContent =
-    "No upcoming tasks";
-
-}
 
   $("progress-text").textContent =
     `${completed} of ${tasks.length} completed`;
 
   $("progress-bar").style.width =
-    `${tasks.length
-      ? (completed / tasks.length) * 100
-      : 0}%`;
+    `${
+      tasks.length
+        ? (completed / tasks.length) * 100
+        : 0
+    }%`;
 
-
-  const titles = {
+  $("page-title").textContent = {
     all: "All tasks",
     today: "Today",
-    calendar: "Calendar",
     upcoming: "Upcoming",
     overdue: "Overdue",
     completed: "Completed"
-  };
+  }[currentList];
 
-  $("page-title").textContent =
-    titles[currentList] || "All tasks";
-
-
-  if (
-    currentView === "calendar" ||
-    currentList === "calendar"
-  ) {
-
+  if (currentView === "calendar") {
     renderCalendar();
-
     return;
   }
 
-
   if (currentView === "board") {
-
     area.className = "board";
 
     area.innerHTML = [
@@ -547,12 +492,12 @@ if (todayTasks.length > 0) {
             class="column"
             data-status="${status}"
           >
-
             <h2>
               ${
                 {
                   todo: "TO DO",
-                  in_progress: "IN PROGRESS",
+                  in_progress:
+                    "IN PROGRESS",
                   done: "DONE"
                 }[status]
               }
@@ -561,128 +506,77 @@ if (todayTasks.length > 0) {
             ${visible
               .filter(
                 (task) =>
-                  task.status === status
+                  task.status ===
+                  status
               )
               .map(taskHTML)
               .join("")}
-
           </section>
         `
       )
       .join("");
 
-    return;
+  } else {
+    area.className = "task-list";
+
+    area.innerHTML =
+      visible.length
+        ? visible.map(taskHTML).join("")
+        : `
+          <div class="empty">
+            <strong>
+              ${
+                $("search").value
+                  ? "No tasks match your search."
+                  : "Nothing here yet."
+              }
+            </strong>
+
+            <span>
+              Add your first task above.
+            </span>
+          </div>
+        `;
   }
-
-
-  area.className = "task-list";
-
-
-  area.innerHTML = visible.length
-    ? visible.map(taskHTML).join("")
-    : `
-      <div class="empty">
-
-        <strong>
-          ${
-            $("search").value
-              ? "No tasks match your search."
-              : "Nothing here yet."
-          }
-        </strong>
-
-        <span>
-          ${
-            $("search").value
-              ? "Try another search."
-              : "Add your first task above."
-          }
-        </span>
-
-      </div>
-    `;
 }
 
-
-/* -----------------------------
-   ADD TASK
------------------------------ */
-
 function add() {
-
   const title =
     $("task-input").value.trim();
 
   if (!title) {
-
     $("task-input").focus();
-
     return;
   }
 
-
-  const task = {
-
+  tasks.unshift({
     id: crypto.randomUUID(),
-
     title,
-
     description: "",
-
     status: "todo",
-
-    priority:
-      $("priority").value,
-
-    due:
-      $("due-date").value,
-
-    tags:
-      $("tags")
-        .value
-        .split(",")
-        .map(
-          (tag) =>
-            tag.trim().toLowerCase()
-        )
-        .filter(Boolean),
-
+    priority: $("priority").value,
+    due: $("due-date").value,
+    tags: $("tags")
+      .value
+      .split(",")
+      .map((tag) =>
+        tag.trim().toLowerCase()
+      )
+      .filter(Boolean),
     created: Date.now()
-  };
-
-
-  tasks.unshift(task);
+  });
 
   save();
 
-
   $("task-input").value = "";
-
   $("priority").value = "";
-
   $("due-date").value = "";
-
   $("tags").value = "";
-
-
-  currentList = "all";
-  currentView = "list";
-
-
-  updateNavigation();
-
-  updateViewButtons();
 
   render();
 }
 
-
-/* -----------------------------
-   EDIT TASK
------------------------------ */
-
 function openEdit(id) {
-
   const task =
     tasks.find(
       (item) => item.id === id
@@ -690,43 +584,135 @@ function openEdit(id) {
 
   if (!task) return;
 
-
   editingId = id;
-
 
   $("edit-title").value =
     task.title;
 
   $("edit-description").value =
-    task.description || "";
+    task.description;
 
   $("edit-status").value =
     task.status;
 
   $("edit-priority").value =
-    task.priority || "";
+    task.priority;
 
   $("edit-date").value =
-    task.due || "";
+    task.due;
 
   $("edit-tags").value =
-    (task.tags || []).join(", ");
-
+    task.tags.join(", ");
 
   $("task-dialog").showModal();
 }
 
+$("add-button").onclick = add;
 
-/* -----------------------------
-   SAVE EDIT
------------------------------ */
+$("task-input").onkeydown = (event) => {
+  if (event.key === "Enter") {
+    add();
+  }
+};
+
+$("details-toggle")?.addEventListener(
+  "click",
+  () => {}
+);
+
+$("search").oninput = render;
+
+$("status-filter").onchange =
+  render;
+
+$("priority-filter").onchange =
+  render;
+
+document
+  .querySelectorAll(
+    "#smart-lists button"
+  )
+  .forEach((button) => {
+    button.onclick = () => {
+      currentList =
+        button.dataset.list;
+
+      document
+        .querySelectorAll(
+          "#smart-lists button"
+        )
+        .forEach((item) =>
+          item.classList.toggle(
+            "nav-active",
+            item === button
+          )
+        );
+
+      render();
+    };
+  });
+
+document
+  .querySelectorAll(
+    ".view-tabs button"
+  )
+  .forEach((button) => {
+    button.onclick = () => {
+      currentView =
+        button.dataset.view;
+
+      document
+        .querySelectorAll(
+          ".view-tabs button"
+        )
+        .forEach((item) =>
+          item.classList.toggle(
+            "selected",
+            item === button
+          )
+        );
+
+      render();
+    };
+  });
+
+$("task-area").onclick = (event) => {
+  const target =
+    event.target.closest(
+      "[data-complete],[data-edit]"
+    );
+
+  if (!target) return;
+
+  const id =
+    target.dataset.complete ||
+    target.dataset.edit;
+
+  if (target.dataset.complete) {
+    const task =
+      tasks.find(
+        (item) => item.id === id
+      );
+
+    if (!task) return;
+
+    task.status =
+      task.status === "done"
+        ? "todo"
+        : "done";
+
+    save();
+    render();
+
+  } else {
+    openEdit(id);
+  }
+};
 
 $("edit-form").addEventListener(
   "submit",
   (event) => {
-
     event.preventDefault();
-
 
     const task =
       tasks.find(
@@ -736,40 +722,30 @@ $("edit-form").addEventListener(
 
     if (!task) return;
 
+    Object.assign(task, {
+      title:
+        $("edit-title").value.trim(),
 
-    task.title =
-      $("edit-title").value.trim();
+      description:
+        $("edit-description").value,
 
-    task.description =
-      $("edit-description").value;
+      status:
+        $("edit-status").value,
 
-    task.status =
-      $("edit-status").value;
+      priority:
+        $("edit-priority").value,
 
-    task.priority =
-      $("edit-priority").value;
+      due:
+        $("edit-date").value,
 
-    task.due =
-      $("edit-date").value;
-
-    task.tags =
-      $("edit-tags")
+      tags: $("edit-tags")
         .value
         .split(",")
-        .map(
-          (tag) =>
-            tag.trim().toLowerCase()
+        .map((tag) =>
+          tag.trim().toLowerCase()
         )
-        .filter(Boolean);
-
-
-    if (!task.title) {
-
-      $("edit-title").focus();
-
-      return;
-    }
-
+        .filter(Boolean)
+    });
 
     save();
 
@@ -779,260 +755,46 @@ $("edit-form").addEventListener(
   }
 );
 
-
-/* -----------------------------
-   DELETE TASK
------------------------------ */
-
 $("delete-button").onclick = () => {
-
   if (
-    !confirm(
+    confirm(
       "Delete this task?"
     )
   ) {
-    return;
-  }
-
-
-  tasks =
-    tasks.filter(
-      (task) =>
-        task.id !== editingId
-    );
-
-
-  save();
-
-  $("task-dialog").close();
-
-  render();
-};
-
-
-/* -----------------------------
-   ADD BUTTON
------------------------------ */
-
-$("add-button").onclick = add;
-
-
-$("task-input").onkeydown = (event) => {
-
-  if (event.key === "Enter") {
-
-    event.preventDefault();
-
-    add();
-  }
-};
-
-
-/* -----------------------------
-   SEARCH + FILTERS
------------------------------ */
-
-$("search").oninput = render;
-
-$("status-filter").onchange = render;
-
-$("priority-filter").onchange = render;
-
-
-/* -----------------------------
-   NAVIGATION
------------------------------ */
-
-function updateNavigation() {
-
-  document
-    .querySelectorAll(
-      "#smart-lists button"
-    )
-    .forEach((button) => {
-
-      button.classList.toggle(
-        "nav-active",
-        button.dataset.list === currentList
+    tasks =
+      tasks.filter(
+        (task) =>
+          task.id !== editingId
       );
-
-    });
-}
-
-
-document
-  .querySelectorAll(
-    "#smart-lists button"
-  )
-  .forEach((button) => {
-
-    button.onclick = () => {
-
-      currentList =
-        button.dataset.list;
-
-
-      if (
-        currentList === "calendar"
-      ) {
-
-        currentView =
-          "calendar";
-
-      } else {
-
-        currentView =
-          "list";
-      }
-
-
-      updateNavigation();
-
-      updateViewButtons();
-
-      render();
-    };
-  });
-
-
-/* -----------------------------
-   LIST / BOARD / CALENDAR BUTTONS
------------------------------ */
-
-function updateViewButtons() {
-
-  document
-    .querySelectorAll(
-      ".view-tabs button"
-    )
-    .forEach((button) => {
-
-      button.classList.toggle(
-        "selected",
-        button.dataset.view === currentView
-      );
-
-    });
-}
-
-
-document
-  .querySelectorAll(
-    ".view-tabs button"
-  )
-  .forEach((button) => {
-
-    button.onclick = () => {
-
-      currentView =
-        button.dataset.view;
-
-
-      if (
-        currentView === "calendar"
-      ) {
-
-        currentList =
-          "calendar";
-
-      } else if (
-        currentList === "calendar"
-      ) {
-
-        currentList =
-          "all";
-      }
-
-
-      updateNavigation();
-
-      updateViewButtons();
-
-      render();
-    };
-  });
-
-
-/* -----------------------------
-   TASK CLICKING
------------------------------ */
-
-$("task-area").onclick = (event) => {
-
-  const target =
-    event.target.closest(
-      "[data-complete],[data-edit]"
-    );
-
-
-  if (!target) return;
-
-
-  const id =
-    target.dataset.complete ||
-    target.dataset.edit;
-
-
-  if (target.dataset.complete) {
-
-    const task =
-      tasks.find(
-        (item) => item.id === id
-      );
-
-    if (!task) return;
-
-
-    task.status =
-      task.status === "done"
-        ? "todo"
-        : "done";
-
 
     save();
 
+    $("task-dialog").close();
+
     render();
-
-    return;
-  }
-
-
-  if (target.dataset.edit) {
-
-    openEdit(id);
-
   }
 };
-
-
-/* -----------------------------
-   DRAG & DROP BOARD
------------------------------ */
 
 document.addEventListener(
   "dragstart",
   (event) => {
-
     const card =
       event.target.closest(
         ".task"
       );
 
-    if (!card) return;
-
-
-    event.dataTransfer.setData(
-      "text/plain",
-      card.dataset.id
-    );
+    if (card) {
+      event.dataTransfer.setData(
+        "text/plain",
+        card.dataset.id
+      );
+    }
   }
 );
-
 
 document.addEventListener(
   "dragover",
   (event) => {
-
     if (
       event.target.closest(
         ".column"
@@ -1043,11 +805,9 @@ document.addEventListener(
   }
 );
 
-
 document.addEventListener(
   "drop",
   (event) => {
-
     const column =
       event.target.closest(
         ".column"
@@ -1055,38 +815,24 @@ document.addEventListener(
 
     if (!column) return;
 
-
     const id =
       event.dataTransfer.getData(
         "text/plain"
       );
-
 
     const task =
       tasks.find(
         (item) => item.id === id
       );
 
-    if (!task) return;
+    if (task) {
+      task.status =
+        column.dataset.status;
 
-
-    task.status =
-      column.dataset.status;
-
-
-    save();
-
-    render();
+      save();
+      render();
+    }
   }
 );
-
-
-/* -----------------------------
-   INITIAL LOAD
------------------------------ */
-
-updateNavigation();
-
-updateViewButtons();
 
 render();
