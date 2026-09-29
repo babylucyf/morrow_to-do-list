@@ -446,21 +446,58 @@ function render() {
       (task) => task.status === "done"
     ).length;
 
-  const openToday =
-    tasks.filter(
-      (task) =>
-        task.due === today() &&
-        task.status !== "done"
-    ).length;
+  const todayTasks = tasks.filter(
+  (task) =>
+    task.due === today() &&
+    task.status !== "done"
+);
 
+const upcomingTasks = tasks
+  .filter(
+    (task) =>
+      task.due &&
+      task.due > today() &&
+      task.status !== "done"
+  )
+  .sort(
+    (a, b) =>
+      a.due.localeCompare(b.due)
+  );
 
-  $("all-count").textContent =
-    tasks.length;
+$("all-count").textContent = tasks.length;
 
-  $("focus-text").textContent =
-    `${openToday} task${
-      openToday === 1 ? "" : "s"
+const focusLabel = document.querySelector(
+  ".summary > div:first-child span"
+);
+
+const focusText = $("focus-text");
+
+if (todayTasks.length > 0) {
+
+  focusLabel.textContent = "Focus for today";
+
+  focusText.textContent =
+    `${todayTasks.length} task${
+      todayTasks.length === 1 ? "" : "s"
     } remain`;
+
+} else if (upcomingTasks.length > 0) {
+
+  const nextTask = upcomingTasks[0];
+
+  focusLabel.textContent = "Up next";
+
+  focusText.textContent =
+    `${nextTask.title} · Due ${formatDate(nextTask.due)}`;
+
+} else {
+
+  focusLabel.textContent = "You're all caught up";
+
+  focusText.textContent =
+    "No upcoming tasks";
+
+}
 
   $("progress-text").textContent =
     `${completed} of ${tasks.length} completed`;
